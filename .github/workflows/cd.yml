@@ -1,0 +1,37 @@
+# Build the API image (optionally with the current champion model baked in) and push
+# to ECR. App Runner watches :latest and redeploys automatically.
+# Repo secrets: AWS_DEPLOY_ROLE_ARN (terraform output), optional MLFLOW_TRACKING_URI.
+name: cd
+on:
+  push:
+    branches: [main]
+    paths: ["mlops/**", "docker/api.Dockerfile", "requirements-serve.txt"]
+  workflow_dispatch:
+permissions:
+  id-token: write   # OIDC: no long-lived AWS keys in GitHub
+  contents: read
+env:
+  AWS_REGION: us-west-2
+  REPO: bike-demand-api
+  # secrets can't be used in step `if:` conditions, so surface it as env first
+  MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Export champion model (if a tracking server is configured)
+        if: env.MLFLOW_TRACKING_URI != ''
+        run: pip install "mlflow>=3.1,<4" && python scripts/export_champion.py
+      - name: Build and push
+        run: |
+          IMG=${{ steps.ecr.outputs.registry }}/$REPO
+          docker build -f docker/api.Dockerfile -t $IMG:${{ github.sha }} -t $IMG:latest .
+          docker push $IMG:${{ github.sha }}
+          docker push $IMG:latest

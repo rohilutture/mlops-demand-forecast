@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.pytest_cache/
+data/
+logs/
+reports/
+mlruns/
+mlflow.db
+model_export/
+infra/terraform/.terraform/
+infra/terraform/*.tfstate*
+infra/terraform/.terraform.lock.hcl

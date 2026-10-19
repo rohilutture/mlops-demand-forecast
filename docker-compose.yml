@@ -1,0 +1,38 @@
+# Local stack: MLflow tracking + registry, the prediction API, and Airflow.
+#   docker compose up -d --build
+#   MLflow  http://localhost:5000   API http://localhost:8000/docs   Airflow http://localhost:8080
+services:
+  mlflow:
+    build: { context: ., dockerfile: docker/mlflow.Dockerfile }
+    command: >
+      mlflow server --host 0.0.0.0 --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db --artifacts-destination /mlflow/artifacts
+    ports: ["5000:5000"]
+    volumes: ["mlflow:/mlflow"]
+
+  api:
+    build: { context: ., dockerfile: docker/api.Dockerfile }
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      PRED_LOG: /app/logs/predictions.jsonl
+    ports: ["8000:8000"]
+    volumes: ["./logs:/app/logs"]
+    depends_on: [mlflow]
+
+  airflow:
+    build: { context: ., dockerfile: docker/airflow.Dockerfile }
+    command: standalone           # dev mode: scheduler + webserver + sqlite. Not for production.
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      PYTHONPATH: /opt/project
+      BIKE_DATA: /opt/project/data/hour.csv
+      PRED_LOG: /opt/project/logs/predictions.jsonl
+      BIKE_API: http://api:8000
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/project/dags
+    ports: ["8080:8080"]
+    volumes: [".:/opt/project"]
+    depends_on: [mlflow, api]
+
+volumes:
+  mlflow: {}
