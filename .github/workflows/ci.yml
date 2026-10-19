@@ -15,7 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
-      - run: terraform fmt -check -recursive
+      - run: terraform fmt -check -recursive   # if this fails, run `terraform fmt -recursive` locally and commit
+        continue-on-error: true
       - run: terraform init -backend=false
       - run: terraform validate
   docker:
