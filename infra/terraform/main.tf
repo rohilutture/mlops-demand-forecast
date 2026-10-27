@@ -179,7 +179,7 @@ resource "aws_iam_role_policy" "github_deploy" {
       { Effect = "Allow", Action = ["ecr:GetAuthorizationToken"], Resource = "*" },
       { Effect = "Allow", Resource = aws_ecr_repository.api.arn, Action = [
         "ecr:BatchCheckLayerAvailability", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart",
-        "ecr:CompleteLayerUpload", "ecr:PutImage", "ecr:BatchGetImage"] }
+      "ecr:CompleteLayerUpload", "ecr:PutImage", "ecr:BatchGetImage"] }
     ]
   })
 }

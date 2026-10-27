@@ -44,7 +44,23 @@ An end-to-end MLOps system for hourly demand forecasting: a model plus everythin
 
 There were 9 retrains and 6 promotions; 3 challengers were rejected by the promotion rule.
 
-**On the real UCI data:** _TBD after you run it_ (see below).
+**On the real UCI data** (train before 2012-01-01, replay the 53 weeks of 2012; CPU only, AMD Ryzen 7 5800H):
+
+![replay on real data](docs/simulation_real.png)
+
+| | Mean weekly WAPE | Mean weekly MAE |
+|---|---|---|
+| Frozen first model | 0.085 | 16.4 |
+| With monitoring + retraining | 0.085 | 16.4 |
+
+The initial model scores WAPE 0.219 on its 28-day test window, against 0.391 for the seasonal-naive baseline (MAE 35.4 vs 63.4).
+
+**Honest read of the result: monitoring worked, retraining did not pay off here.**
+- Drift detection fired on 49 of 53 weeks (PSI > 0.25 on 56-100% of features), which is correct, because demand and weather drift away from the training window.
+- The cooldown allowed 14 retrains. **None beat the champion by the required 2% on the same held-out window, so there were 0 promotions** and the deployed model never changed.
+- The reason is that the model's 24h/48h/168h lag features carry the current demand level, so the frozen model keeps tracking it even as demand roughly doubles. Live WAPE stayed near or below the training WAPE in 50 of 53 weeks. It spiked in late November and December (peak 0.595 in the week of 2012-12-23, the week containing Christmas), and retraining did not fix that either.
+- Takeaway: the promotion rule did its job by preventing 14 pointless model swaps, but PSI on its own is a noisy retrain trigger for a lag-based model. A better trigger would gate on live WAPE, not on feature drift alone. That is a possible follow-up, not something built here.
+- The synthetic run above did show a small gain from retraining; the real data did not, so only the real-data result should be quoted.
 
 ## Run it
 
