@@ -4,3 +4,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && rm 
 USER airflow
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
+# requirements.txt upgrades `cryptography` past what Airflow's bundled pyOpenSSL supports
+# (webserver crashes with "module 'lib' has no attribute 'GEN_EMAIL'"), so upgrade pyOpenSSL to match.
+RUN pip install --no-cache-dir -U pyopenssl
